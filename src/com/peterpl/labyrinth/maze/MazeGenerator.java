@@ -2,6 +2,8 @@ package com.peterpl.labyrinth.maze;
 
 import com.peterpl.labyrinth.*;
 
+import java.util.Stack;
+
 public class MazeGenerator {
     public final int[][] array;
 
@@ -50,26 +52,31 @@ public class MazeGenerator {
         }
 
         generate();
+
+        array[0][1] = FLOOR;
+        array[arrayWidth - 1][arrayHeight - 2] = FLOOR;
     }
 
     private void generate() {
-        Point start = createStart();
-        while((start = randomCorridor(start)) != null) {
+        generate(createStart());
+    }
+
+    private void generate(Point start) {
+        Stack<Point> pointsStack = new Stack<>();
+        Point point = start;
+        while((point = randomCorridor(point)) != null) {
+            pointsStack.push(point);
+        }
+        for(Point p : pointsStack) {
+            generate(p);
         }
     }
 
     private Point createStart() {
         Point start, corridor;
 
-        if(Rand.bool()) {
-            start = new Point(Rand.number(1, width - 2), Rand.element(0, height - 1));
-            int nextY = start.y() == 0 ? 1 : height - 2;
-            corridor = new Point(start.x(), nextY);
-        } else {
-            start = new Point(Rand.element(0, width - 1), Rand.number(1, height - 2));
-            int nextX = start.x() == 0 ? 1 : width - 2;
-            corridor = new Point(nextX, start.y());
-        }
+        start = new Point(0, 0);
+        corridor = Rand.bool() ? new Point(1, 0) : new Point(0, 1);
 
         int x = start.x();
         int y = start.y();
