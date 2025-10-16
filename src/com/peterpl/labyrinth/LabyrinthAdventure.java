@@ -1,112 +1,117 @@
 package com.peterpl.labyrinth;
 
-import com.peterpl.labyrinth.maze.MazeGenerator;
+import com.peterpl.labyrinth.graphics.*;
+import com.peterpl.labyrinth.input.*;
+import com.peterpl.labyrinth.level.*;
+import com.peterpl.labyrinth.maze.*;
+import com.peterpl.labyrinth.player.*;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
+import java.awt.image.*;
 
-public class LabyrinthAdventure {
-    private final int width, height;
-    private int playerX, playerY;
+public class LabyrinthAdventure extends Canvas implements Runnable {
+    private static final int WIDTH_BASE = 800;
+    public static final int SCALE = 3;
+    public static final int WIDTH = WIDTH_BASE / SCALE;
+    public static final int HEIGHT = WIDTH * 3 / 4;
+    public static final String TITLE = "Labyrinth Adventure";
+
     private MazeGenerator maze;
-    private JFrame frame;
-    private boolean left, right, up, down;
-    private JLabel[][] labels;
 
-    private boolean[] keys = new boolean[65536];
+    private JFrame frame;
+    private Thread thread;
+    private boolean running = false;
+
+    private Render render;
+    private Keyboard keyboard;
+    private Level level;
+    private Player player;
+
+    private BufferedImage image = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
+    private int[] pixels = ((DataBufferInt)image.getRaster().getDataBuffer()).getData();
 
     public LabyrinthAdventure(int width, int height) {
         maze = new MazeGenerator(width, height);
-        this.width = width;
-        this.height = height;
-        playerX = 0;
-        playerY = 1;
+
+        level = new Level(maze.arrayWidth, maze.arrayHeight);
+        player = new Player(0, Tile.SIZE);
+
+        render = new Render(WIDTH, HEIGHT, level, player);
+
+        for(int x = 0; x < level.width; x++) {
+            for(int y = 0; y < level.height; y++) {
+                int tile = maze.array[x][y];
+                level.tiles[x][y] = tile == MazeGenerator.WALL ? Tile.WALL : Tile.FLOOR;
+            }
+        }
+
+        keyboard = new Keyboard();
+        addKeyListener(keyboard);
 
         initFrame();
-
-        frame.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                keys[e.getKeyCode()] = true;
-            }
-
-            @Override
-            public void keyReleased(KeyEvent e) {
-                keys[e.getKeyCode()] = false;
-            }
-        });
-
-        new Thread(() -> {
-            try {
-                while(true) {
-                    Thread.sleep(100);
-
-                    left = keys[KeyEvent.VK_A];
-                    right = keys[KeyEvent.VK_D];
-                    up = keys[KeyEvent.VK_W];
-                    down = keys[KeyEvent.VK_S];
-
-                    if(left) move(-1, 0);
-                    if(right) move(1, 0);
-                    if(up) move(0, -1);
-                    if(down) move(0, 1);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                System.exit(0);
-            }
-        }).start();
-
-        move(0, 0);
-    }
-
-    private void move(int xDir, int yDir) {
-        int newX = playerX + xDir;
-        int newY = playerY + yDir;
-        if(newX < 0 || newY < 0 || newX >= maze.arrayWidth || newY >= maze.arrayHeight) {
-            return;
-        }
-        int cell = maze.array[newX][newY];
-        if(cell == MazeGenerator.FLOOR) {
-            labels[playerX][playerY].setBackground(getCellColour(playerX, playerY));
-            labels[newX][newY].setBackground(Color.RED);
-            playerX = newX;
-            playerY = newY;
-        }
-    }
-
-    private Color getCellColour(int x, int y) {
-        return maze.array[x][y] == MazeGenerator.FLOOR ? Color.white : Color.black;
+        start();
     }
 
     private void initFrame() {
-        final int CELL_SIZE = 10;
+        setSize(new Dimension(WIDTH * SCALE, HEIGHT * SCALE));
 
         frame = new JFrame();
-        frame.setTitle("Labyrinth Adventure");
-        frame.setSize(maze.arrayWidth * CELL_SIZE, maze.arrayHeight * CELL_SIZE + 32);
-        frame.setLayout(null);
+        frame.setTitle(TITLE);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.add(this);
+        frame.pack();
         frame.setLocationRelativeTo(null);
         frame.setResizable(false);
+        frame.setVisible(true);
+    }
 
-        labels = new JLabel[maze.arrayWidth][maze.arrayHeight];
-        for(int x = 0; x < maze.arrayWidth; x++) {
-            labels[x] = new JLabel[maze.arrayHeight];
-            for(int y = 0; y < maze.arrayHeight; y++) {
-                JLabel label = new JLabel();
-                label.setSize(CELL_SIZE, CELL_SIZE);
-                label.setLocation(CELL_SIZE * x, CELL_SIZE * y);
-                label.setOpaque(true);
-                label.setBackground(getCellColour(x, y));
-                frame.getContentPane().add(label);
-                labels[x][y] = label;
-            }
+    public void start() {
+        running = true;
+        thread = new Thread(this);
+        thread.start();
+    }
+
+    public void stop() {
+        running = false;
+        try {
+            thread.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void run() {
+        while(running) {
+            update();
+            render();
+        }
+        stop();
+    }
+
+    public void update() {
+        keyboard.update();
+    }
+
+    public void render() {
+        BufferStrategy bs = getBufferStrategy();
+        if(bs == null) {
+            createBufferStrategy(2);
+            return;
         }
 
-        frame.setVisible(true);
+        render.clear();
+        render.render();
+
+        for(int i = 0; i < pixels.length; i++) {
+            pixels[i] = render.getPixels()[i];
+        }
+
+        Graphics g = bs.getDrawGraphics();
+        g.drawImage(image, 0, 0, getWidth(), getHeight(), null);
+        g.dispose();
+        bs.show();
     }
 
     public static void main(String[] args) {

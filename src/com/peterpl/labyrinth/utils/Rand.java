@@ -1,4 +1,4 @@
-package com.peterpl.labyrinth;
+package com.peterpl.labyrinth.utils;
 
 import java.util.*;
 

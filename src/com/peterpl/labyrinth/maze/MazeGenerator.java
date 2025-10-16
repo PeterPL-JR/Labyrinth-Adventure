@@ -1,8 +1,8 @@
 package com.peterpl.labyrinth.maze;
 
-import com.peterpl.labyrinth.*;
+import com.peterpl.labyrinth.utils.*;
 
-import java.util.Stack;
+import java.util.*;
 
 public class MazeGenerator {
     public final int[][] array;
