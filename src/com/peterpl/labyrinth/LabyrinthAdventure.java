@@ -2,6 +2,7 @@ package com.peterpl.labyrinth;
 
 import com.peterpl.labyrinth.graphics.*;
 import com.peterpl.labyrinth.input.*;
+import com.peterpl.labyrinth.item.*;
 import com.peterpl.labyrinth.level.*;
 import com.peterpl.labyrinth.maze.*;
 import com.peterpl.labyrinth.player.*;
@@ -13,9 +14,11 @@ import java.awt.image.*;
 public class LabyrinthAdventure extends Canvas implements Runnable {
     private static final int WIDTH_BASE = 800;
     public static final int SCALE = 3;
-    public static final int WIDTH = WIDTH_BASE / SCALE / Tile.SIZE * Tile.SIZE;
+    public static final int WIDTH = WIDTH_BASE / SCALE / LabyrinthAdventure.SIZE * LabyrinthAdventure.SIZE;
     public static final int HEIGHT = WIDTH * 3 / 4;
     public static final String TITLE = "Labyrinth Adventure";
+
+    public static final int SIZE = 16;
 
     private JFrame frame;
     private Thread thread;
@@ -33,7 +36,7 @@ public class LabyrinthAdventure extends Canvas implements Runnable {
 
     public LabyrinthAdventure(int width, int height) {
         level = new Level(width, height, Tile.WALL, Tile.FLOOR);
-        player = new Player(0, Tile.SIZE, level);
+        player = new Player(0, SIZE, level);
 
         render = new Render(WIDTH, HEIGHT, level, player);
 
@@ -77,6 +80,8 @@ public class LabyrinthAdventure extends Canvas implements Runnable {
         long prevTime = System.nanoTime();
         final double nanoSeconds = 1_000_000_000.0 / UPS_LIMIT;
 
+        requestFocus();
+
         try {
             while(running) {
                 long time = System.nanoTime();
@@ -86,7 +91,6 @@ public class LabyrinthAdventure extends Canvas implements Runnable {
                     long sleepTime = (long) ((nanoSeconds - delta) / 1_000_000);
                     Thread.sleep(sleepTime);
                 }
-                requestFocus();
 
                 update();
                 render();
@@ -104,11 +108,12 @@ public class LabyrinthAdventure extends Canvas implements Runnable {
 
     public void update() {
         keyboard.update();
+        level.update();
         player.update();
 
         if(moving) {
             player.move(moveDirX, moveDirY);
-            if(player.x % Tile.SIZE == 0 && player.y % Tile.SIZE == 0) {
+            if(player.x % SIZE == 0 && player.y % LabyrinthAdventure.SIZE == 0) {
                 moving = false;
                 moveDirX = 0;
                 moveDirY = 0;

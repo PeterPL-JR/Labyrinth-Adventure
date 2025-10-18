@@ -33,4 +33,8 @@ public class Texture extends Pixelated {
             }
         }
     }
+
+    public Texture(Texture texture) {
+        this(texture, 0, 0, texture.width, texture.height);
+    }
 }

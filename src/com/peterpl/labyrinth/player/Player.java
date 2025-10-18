@@ -1,5 +1,6 @@
 package com.peterpl.labyrinth.player;
 
+import com.peterpl.labyrinth.*;
 import com.peterpl.labyrinth.graphics.*;
 import com.peterpl.labyrinth.level.*;
 
@@ -13,7 +14,6 @@ public class Player {
     public boolean moving = false;
     private int movingTime = 0;
 
-    public static final int SIZE = 16;
     public static final int MOVE_SPEED = 1;
 
     public Player(Level level) {
@@ -47,6 +47,15 @@ public class Player {
             texY = 0;
             movingTime = 0;
         }
+
+        if(x % LabyrinthAdventure.SIZE == 0 && y % LabyrinthAdventure.SIZE == 0) {
+            int tileX = x / LabyrinthAdventure.SIZE;
+            int tileY = y / LabyrinthAdventure.SIZE;
+
+            if(level.items[tileX][tileY] != null) {
+                level.items[tileX][tileY] = null;
+            }
+        }
     }
 
     public void move(int x, int y) {
@@ -61,8 +70,8 @@ public class Player {
         int newTileX = newX;
         int newTileY = newY;
 
-        if(x > 0) newTileX += Player.SIZE - 1;
-        if(y > 0) newTileY += Player.SIZE - 1;
+        if(x > 0) newTileX += LabyrinthAdventure.SIZE - 1;
+        if(y > 0) newTileY += LabyrinthAdventure.SIZE - 1;
 
         if(newTileX < 0 || newTileY < 0) {
             return;
