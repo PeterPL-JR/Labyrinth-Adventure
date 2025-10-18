@@ -13,11 +13,9 @@ import java.awt.image.*;
 public class LabyrinthAdventure extends Canvas implements Runnable {
     private static final int WIDTH_BASE = 800;
     public static final int SCALE = 3;
-    public static final int WIDTH = WIDTH_BASE / SCALE;
+    public static final int WIDTH = WIDTH_BASE / SCALE / Tile.SIZE * Tile.SIZE;
     public static final int HEIGHT = WIDTH * 3 / 4;
     public static final String TITLE = "Labyrinth Adventure";
-
-    private MazeGenerator maze;
 
     private JFrame frame;
     private Thread thread;
@@ -28,23 +26,16 @@ public class LabyrinthAdventure extends Canvas implements Runnable {
     private Level level;
     private Player player;
 
+    private static final int UPS_LIMIT = 60;
+
     private BufferedImage image = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
     private int[] pixels = ((DataBufferInt)image.getRaster().getDataBuffer()).getData();
 
     public LabyrinthAdventure(int width, int height) {
-        maze = new MazeGenerator(width, height);
-
-        level = new Level(maze.arrayWidth, maze.arrayHeight);
-        player = new Player(0, Tile.SIZE);
+        level = new Level(width, height, Tile.WALL, Tile.FLOOR);
+        player = new Player(0, Tile.SIZE, level);
 
         render = new Render(WIDTH, HEIGHT, level, player);
-
-        for(int x = 0; x < level.width; x++) {
-            for(int y = 0; y < level.height; y++) {
-                int tile = maze.array[x][y];
-                level.tiles[x][y] = tile == MazeGenerator.WALL ? Tile.WALL : Tile.FLOOR;
-            }
-        }
 
         keyboard = new Keyboard();
         addKeyListener(keyboard);
@@ -83,15 +74,70 @@ public class LabyrinthAdventure extends Canvas implements Runnable {
 
     @Override
     public void run() {
-        while(running) {
-            update();
-            render();
+        long prevTime = System.nanoTime();
+        final double nanoSeconds = 1_000_000_000.0 / UPS_LIMIT;
+
+        try {
+            while(running) {
+                long time = System.nanoTime();
+                long delta = time - prevTime;
+
+                if(delta < nanoSeconds) {
+                    long sleepTime = (long) ((nanoSeconds - delta) / 1_000_000);
+                    Thread.sleep(sleepTime);
+                }
+                requestFocus();
+
+                update();
+                render();
+
+                prevTime = time;
+            }
+        } catch(InterruptedException e) {
+            e.printStackTrace();
         }
         stop();
     }
 
+    boolean moving = false;
+    int moveDirX = 0, moveDirY = 0;
+
     public void update() {
         keyboard.update();
+        player.update();
+
+        if(moving) {
+            player.move(moveDirX, moveDirY);
+            if(player.x % Tile.SIZE == 0 && player.y % Tile.SIZE == 0) {
+                moving = false;
+                moveDirX = 0;
+                moveDirY = 0;
+            }
+        } else {
+            boolean left = keyboard.left;
+            boolean right = keyboard.right;
+            boolean up = keyboard.up;
+            boolean down = keyboard.down;
+
+            if(left) {
+                moveDirX = -1;
+            }
+            else if(right) {
+                moveDirX = 1;
+            }
+            else if(up) {
+                moveDirY = -1;
+            }
+            else if(down) {
+                moveDirY = 1;
+            }
+
+            player.moving = left || right || up || down;
+
+            if(moveDirX != 0 || moveDirY != 0) {
+                moving = true;
+            }
+        }
     }
 
     public void render() {

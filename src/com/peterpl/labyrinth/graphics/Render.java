@@ -1,5 +1,6 @@
 package com.peterpl.labyrinth.graphics;
 
+import com.peterpl.labyrinth.*;
 import com.peterpl.labyrinth.level.*;
 import com.peterpl.labyrinth.player.*;
 import com.peterpl.labyrinth.utils.*;
@@ -23,8 +24,33 @@ public class Render extends Pixelated {
     }
 
     public void render() {
-        renderLevel(level, 0, 0);
-        renderTexture(player.texture, player.x, player.y, player.texX * Player.SIZE, player.texY * Player.SIZE, Player.SIZE, Player.SIZE);
+        int playerRenderX = (LabyrinthAdventure.WIDTH - Player.SIZE) / 2;
+        int playerRenderY = (LabyrinthAdventure.HEIGHT - Player.SIZE) / 2;
+
+        int xOffset = -player.x + playerRenderX;
+        int yOffset = -player.y + playerRenderY;
+
+        final int MAX_OFFSET_X = -level.width * Tile.SIZE + LabyrinthAdventure.WIDTH;
+        final int MAX_OFFSET_Y = -level.height * Tile.SIZE + LabyrinthAdventure.HEIGHT;
+
+        if(xOffset >= 0) {
+            xOffset = 0;
+            playerRenderX = player.x;
+        } else if(xOffset < MAX_OFFSET_X) {
+            xOffset = MAX_OFFSET_X;
+            playerRenderX = player.x + MAX_OFFSET_X;
+        }
+
+        if(yOffset >= 0) {
+            yOffset = 0;
+            playerRenderY = player.y;
+        } else if(yOffset < MAX_OFFSET_Y) {
+            yOffset = MAX_OFFSET_Y;
+            playerRenderY = player.y + MAX_OFFSET_Y;
+        }
+
+        renderLevel(level, xOffset, yOffset);
+        renderTexture(player.texture, playerRenderX, playerRenderY, player.texX * Player.SIZE, player.texY * Player.SIZE, Player.SIZE, Player.SIZE);
     }
 
     public void renderTexture(Texture tex, int xPos, int yPos, int texX, int texY, int width, int height) {
